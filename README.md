@@ -42,11 +42,11 @@ POM依赖添加
 ```
 资源目录根路径下添加tracing.properties文件
 ![tracing.properties](http://wx1.sinaimg.cn/mw1024/006QW2Smgy1fv83pwskp1j30kv092wev.jpg "tracing.properties")
-
+一次调用信息
 ![tracing.properties](http://wx4.sinaimg.cn/mw1024/006QW2Smgy1fv84r2zuvzj30mg0hvmy1.jpg "tracing.properties")
-
+调用链
 ![tracing.properties](http://wx2.sinaimg.cn/mw1024/006QW2Smgy1fv84r30py1j30xk0bsgm7.jpg "tracing.properties")
-
+调用成功失败汇总
 ![tracing.properties](http://wx1.sinaimg.cn/mw1024/006QW2Smgy1fv84r35vhjj31130bk3z4.jpg "tracing.properties")
 zipkinHost 指定zipkin服务器IP:PORT 默认为localhost:9411
 serviceName 指定应用名称  默认为trace-default
