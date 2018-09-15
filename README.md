@@ -44,8 +44,8 @@ POM依赖添加
 | Key | Default Value | Description | 
 | - | :-: | - | 
 | transport_type | http | 数据传输方式,支持 http/kafka 两种 | 
-| zipkin_host | localhost:9411 | 传输目的地：当传输方式为http时,为zipkin地址 . <br/> 传输方式为kafka时,为 kafka地址,broker之间以逗号间隔  | 
-| service_name | trace-default | 项目/节点 标识 | 
+| zipkin_host | localhost:9411 | 传输目的地：<br/>传输方式为http时,为zipkin地址 . <br/> 传输方式为kafka时,为 kafka地址,broker之间以逗号间隔 .  | 
+| service_name | trace-default | 项目(节点)标识 | 
 | kafka_topic | zipkin | 传输方式为kafka时的topic | 
 
 
