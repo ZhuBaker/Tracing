@@ -63,6 +63,263 @@ POM依赖添加
 调用链：
 ![tracing.properties](http://wx3.sinaimg.cn/mw1024/006QW2Smgy1fv84ge9genj31f80egwff.jpg "tracing.properties")
 
+----------------------
+
+## 核心源码解析
+
+代码的初步版本：方便描述
+
+```java
+import brave.Span;
+import brave.Tracer;
+import brave.Tracing;
+import brave.propagation.*;
+import brave.sampler.Sampler;
+import com.alibaba.dubbo.common.Constants;
+import com.alibaba.dubbo.common.extension.Activate;
+import com.alibaba.dubbo.common.json.JSON;
+import com.alibaba.dubbo.common.logger.Logger;
+import com.alibaba.dubbo.common.logger.LoggerFactory;
+import com.alibaba.dubbo.remoting.exchange.ResponseCallback;
+import com.alibaba.dubbo.rpc.*;
+import com.alibaba.dubbo.rpc.protocol.dubbo.FutureAdapter;
+import com.alibaba.dubbo.rpc.support.RpcUtils;
+import zipkin2.codec.SpanBytesEncoder;
+import zipkin2.reporter.AsyncReporter;
+import zipkin2.reporter.Sender;
+import zipkin2.reporter.okhttp3.OkHttpSender;
+
+import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.util.Map;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+
+/**
+ * Created with IntelliJ IDEA.
+ *
+ * @author: bakerZhu
+ * @description:
+ * @modifytime:
+ */
+@Activate(group = {Constants.PROVIDER, Constants.CONSUMER})
+public class TracingFilter  implements Filter {
+
+	private static final Logger log = LoggerFactory.getLogger(TracingFilter.class);
+
+	private static Tracing tracing;
+	private static Tracer tracer;
+	private static TraceContext.Extractor<Map<String, String>> extractor;
+	private static TraceContext.Injector<Map<String, String>> injector;
+
+	static final Propagation.Getter<Map<String, String>, String> GETTER =
+			new Propagation.Getter<Map<String, String>, String>() {
+				@Override
+				public String get(Map<String, String> carrier, String key) {
+					return carrier.get(key);
+				}
+
+				@Override
+				public String toString() {
+					return "Map::get";
+				}
+			};
+
+	static final Propagation.Setter<Map<String, String>, String> SETTER =
+			new Propagation.Setter<Map<String, String>, String>() {
+				@Override
+				public void put(Map<String, String> carrier, String key, String value) {
+					carrier.put(key, value);
+				}
+
+				@Override
+				public String toString() {
+					return "Map::set";
+				}
+			};
+
+	static {
+		// 1
+		Sender sender = OkHttpSender.create("http://localhost:9411/api/v2/spans");
+		// 2
+		AsyncReporter asyncReporter = AsyncReporter.builder(sender)
+				.closeTimeout(500, TimeUnit.MILLISECONDS)
+				.build(SpanBytesEncoder.JSON_V2);
+		// 3
+		tracing = Tracing.newBuilder()
+				.localServiceName("tracer-client")
+				.spanReporter(asyncReporter)
+				.sampler(Sampler.ALWAYS_SAMPLE)
+				.propagationFactory(ExtraFieldPropagation.newFactory(B3Propagation.FACTORY, "user-name"))
+				.build();
+		tracer = tracing.tracer();
+		// 4
+		// 4.1
+		extractor = tracing.propagation().extractor(GETTER);
+		// 4.2
+		injector = tracing.propagation().injector(SETTER);
+	}
+
+
+
+	public TracingFilter() {
+	}
+
+	@Override
+	public Result invoke(Invoker<?> invoker, Invocation invocation) throws RpcException {
+
+
+		RpcContext rpcContext = RpcContext.getContext();
+		// 5
+		Span.Kind kind = rpcContext.isProviderSide() ? Span.Kind.SERVER : Span.Kind.CLIENT;
+		final Span span;
+		if (kind.equals(Span.Kind.CLIENT)) {
+			//6
+			span = tracer.nextSpan();
+			//7
+			injector.inject(span.context(), invocation.getAttachments());
+		} else {
+			//8
+			TraceContextOrSamplingFlags extracted = extractor.extract(invocation.getAttachments());
+			//9
+			span = extracted.context() != null ? tracer.joinSpan(extracted.context()) : tracer.nextSpan(extracted);
+		}
+
+		if (!span.isNoop()) {
+			span.kind(kind).start();
+			//10
+			String service = invoker.getInterface().getSimpleName();
+			String method = RpcUtils.getMethodName(invocation);
+			span.kind(kind);
+			span.name(service + "/" + method);
+			InetSocketAddress remoteAddress = rpcContext.getRemoteAddress();
+			span.remoteIpAndPort(
+					remoteAddress.getAddress() != null ? remoteAddress.getAddress().getHostAddress() : remoteAddress.getHostName(),remoteAddress.getPort());
+		}
+
+		boolean isOneway = false, deferFinish = false;
+		try (Tracer.SpanInScope scope = tracer.withSpanInScope(span)){
+			//11
+			collectArguments(invocation, span, kind);
+			Result result = invoker.invoke(invocation);
+
+			if (result.hasException()) {
+				onError(result.getException(), span);
+			}
+			// 12
+			isOneway = RpcUtils.isOneway(invoker.getUrl(), invocation);
+			// 13
+			Future<Object> future = rpcContext.getFuture();
+
+			if (future instanceof FutureAdapter) {
+				deferFinish = true;
+				((FutureAdapter) future).getFuture().setCallback(new FinishSpanCallback(span));// 14
+			}
+			return result;
+		} catch (Error | RuntimeException e) {
+			onError(e, span);
+			throw e;
+		} finally {
+			if (isOneway) { // 15
+				span.flush();
+			} else if (!deferFinish) { // 16
+				span.finish();
+			}
+		}
+	}
+
+	static void onError(Throwable error, Span span) {
+		span.error(error);
+		if (error instanceof RpcException) {
+			span.tag("dubbo.error_msg", RpcExceptionEnum.getMsgByCode(((RpcException) error).getCode()));
+		}
+	}
+
+	static void collectArguments(Invocation invocation, Span span, Span.Kind kind) {
+		if (kind == Span.Kind.CLIENT) {
+			StringBuilder fqcn = new StringBuilder();
+			Object[] args = invocation.getArguments();
+			if (args != null && args.length > 0) {
+				try {
+					fqcn.append(JSON.json(args));
+				} catch (IOException e) {
+					log.warn(e.getMessage(), e);
+				}
+			}
+			span.tag("args", fqcn.toString());
+		}
+	}
+
+
+
+	static final class FinishSpanCallback implements ResponseCallback {
+		final Span span;
+
+		FinishSpanCallback(Span span) {
+			this.span = span;
+		}
+
+		@Override
+		public void done(Object response) {
+			span.finish();
+		}
+
+		@Override
+		public void caught(Throwable exception) {
+			onError(exception, span);
+			span.finish();
+		}
+	}
+	// 17
+	private enum RpcExceptionEnum {
+		UNKNOWN_EXCEPTION(0, "unknown exception"),
+		NETWORK_EXCEPTION(1, "network exception"),
+		TIMEOUT_EXCEPTION(2, "timeout exception"),
+		BIZ_EXCEPTION(3, "biz exception"),
+		FORBIDDEN_EXCEPTION(4, "forbidden exception"),
+		SERIALIZATION_EXCEPTION(5, "serialization exception"),;
+
+		private int code;
+
+		private String msg;
+
+		RpcExceptionEnum(int code, String msg) {
+			this.code = code;
+			this.msg = msg;
+		}
+
+		public static String getMsgByCode(int code) {
+			for (RpcExceptionEnum error : RpcExceptionEnum.values()) {
+				if (code == error.code) {
+					return error.msg;
+				}
+			}
+			return null;
+		}
+	}
+}
+```
+1. 构建客户端发送工具
+2. 构建异步reporter
+3. 构建tracing上下文
+4. 初始化injector 和  Extractor
+	[tab]4.1 extractor 指数据提取对象,用于在carrier中提取TraceContext相关信息或者采样标记信息到TraceContextOrSamplingFlags 中
+	-4.2 injector 用于将TraceContext中的各种数据注入到carrier中,其中carrier一半是指数据传输中的载体,类似于Dubbo中Invocation中的attachment(附件集合)
+5. 判断此次调用是作为服务端还是客户端
+6. rpc客户端调用会从ThreadLocal中获取parent的 TraceContext ,为新生成的Span指定traceId及 parentId如果没有parent traceContext 则生成的Span为 root span
+7. 将Span绑定的TraceContext中 属性信息 Copy 到 Invocation中达到远程参数传递的作用
+8. rpc服务提供端 , 从invocation中提取TraceContext相关信息及采样数据信息
+9. 生成span , 兼容初次服务端调用
+10. 记录接口信息及远程IP Port
+11. 将创建的Span 作为当前Span (可以通过Tracer.currentSpan 访问到它) 并设置查询范围
+12. oneway调用即只请求不接受结果
+13. 如果future不为空则为 async 调用  在回调中finish span
+14. 设置异步回调，回调代码执行span finish() .
+15. oneway调用 因为不需等待返回值 即没有 cr (Client Receive) 需手动flush()
+16. 同步调用 业务代码执行完毕后需手动finish()
+17. 设置枚举类 与 Dubbo中RpcException保持对应
+
+-----------------------
 
 ## 整合Kafka 
 1.搭建Kafka运行环境 Scala
