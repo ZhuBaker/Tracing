@@ -69,8 +69,9 @@ POM依赖添加
 2.搭建并启动Kafka
 3.启动zipkin:启动zipkin时 建议先看官方文档,鉴于kafka版本更新较快,zipkin连接kafka时不同版本之间的差异, 建议先看[GitHub](https://github.com/openzipkin/zipkin/tree/master/zipkin-server) 后进行zipkin的启动
 针对不同的kafka版本 zipkin的启动配置方式不同 , 基于Kafka 0.10.+ 以上版本重要配置做下说明:
+
 | Attribute | Property | Description | 
-| - | - | - | 
+| - | :-: | - | 
 | KAFKA_BOOTSTRAP_SERVERS | bootstrap.servers | Comma-separated list of brokers, ex. 127.0.0.1:9092. No default | 
 | KAFKA_GROUP_ID | group.id | The consumer group this process is consuming on behalf of. Defaults to zipkin  | 
 | KAFKA_TOPIC | N/A | Comma-separated list of topics that zipkin spans will be consumed from. Defaults to zipkin | 
