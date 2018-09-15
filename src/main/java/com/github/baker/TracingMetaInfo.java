@@ -22,25 +22,35 @@ public class TracingMetaInfo {
 	private static final String RESOURCE_FILE_NAME = "tracing.properties";
 	private static final String DEFAULT_ZIPKIN_V2_URL = "http://localhost:9411/api/v2/spans";
 	private static final String DEFAULT_SERVICE_NAME = "tracer-default";
+	private static final String DEFAULT_TRANSPORT_TYPE = "http";
+	private static final String DEFAULT_KAFKA_TOPIC = "zipkin";
 
 	private static Properties prop = null;
 	public static String ZIPKIN_V2_URL = null;
 	public static String SERVICE_NAME = null;
+	public static String TRANSPORT_TYPE = null;
+	public static String KAFKA_TOPIC = null;
 
 	static {
 		try {
 			prop = new Properties();
 			prop.load(TracingMetaInfo.class.getClassLoader().getResourceAsStream(RESOURCE_FILE_NAME));
 			ZIPKIN_V2_URL = setZipKin(prop.getProperty("zipkinHost") , DEFAULT_ZIPKIN_V2_URL);
-			SERVICE_NAME = setServiceName(prop.getProperty("serviceName") , DEFAULT_SERVICE_NAME);
+			SERVICE_NAME = setProperty(prop.getProperty("serviceName") , DEFAULT_SERVICE_NAME);
+			TRANSPORT_TYPE = setProperty(prop.getProperty("type"),DEFAULT_SERVICE_NAME);
+			TRANSPORT_TYPE = setProperty(prop.getProperty("topic"),DEFAULT_KAFKA_TOPIC);
 		} catch (FileNotFoundException e) {
 			logger.warn(" please add "+RESOURCE_FILE_NAME+" file at resource root directory.");
 			ZIPKIN_V2_URL = setZipKin(null , DEFAULT_ZIPKIN_V2_URL);
-			SERVICE_NAME = setServiceName(null , DEFAULT_SERVICE_NAME);
+			SERVICE_NAME = setProperty(null , DEFAULT_SERVICE_NAME);
+			TRANSPORT_TYPE = setProperty(null , DEFAULT_TRANSPORT_TYPE);
+			TRANSPORT_TYPE = setProperty(prop.getProperty("topic"),DEFAULT_KAFKA_TOPIC);
 		} catch (IOException e) {
 			logger.warn(" loading "+RESOURCE_FILE_NAME+" file error.");
 			ZIPKIN_V2_URL = setZipKin(null , DEFAULT_ZIPKIN_V2_URL);
-			SERVICE_NAME = setServiceName(null , DEFAULT_SERVICE_NAME);
+			SERVICE_NAME = setProperty(null , DEFAULT_SERVICE_NAME);
+			TRANSPORT_TYPE = setProperty(null , DEFAULT_TRANSPORT_TYPE);
+			TRANSPORT_TYPE = setProperty(null , DEFAULT_KAFKA_TOPIC);
 		}
 	}
 
@@ -51,7 +61,7 @@ public class TracingMetaInfo {
 		return defaultValue;
 	}
 
-	private static String setServiceName(String value , String defaultValue) {
+	private static String setProperty(String value , String defaultValue) {
 		return value != null && value.trim().length() > 0 ? value.trim() : defaultValue;
 	}
 

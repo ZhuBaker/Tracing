@@ -6,6 +6,10 @@ import brave.propagation.ExtraFieldPropagation;
 import brave.sampler.Sampler;
 import com.alibaba.dubbo.common.logger.Logger;
 import com.alibaba.dubbo.common.logger.LoggerFactory;
+import com.github.baker.config.AbstractConfig;
+import com.github.baker.config.KafkaTracingConfig;
+import com.github.baker.config.OkHttpTracingConfig;
+import com.github.baker.enums.TransportEnum;
 import com.github.baker.rpc.filter.TracingFilter;
 import zipkin2.Span;
 import zipkin2.codec.SpanBytesEncoder;
@@ -27,26 +31,20 @@ public class SingletonTracingFactory {
 
 	private static final Logger logger = LoggerFactory.getLogger(SingletonTracingFactory.class);
 
+	private static AbstractConfig config;
 	private static Tracing tracing;
 
+	/**
+	 * 构建tracing上下文
+	 */
 	private static void createInstance() {
-		//构建tracing上下文
-		tracing = Tracing.newBuilder()
-				.localServiceName(TracingMetaInfo.SERVICE_NAME)
-				.spanReporter(spanReporter(TracingMetaInfo.ZIPKIN_V2_URL))
-				.sampler(Sampler.ALWAYS_SAMPLE)
-				.propagationFactory(ExtraFieldPropagation.newFactory(B3Propagation.FACTORY, "user-name"))
-				.build();
+		if(TransportEnum.KAFKA.getType().equals(TracingMetaInfo.TRANSPORT_TYPE)) {
+			config = new KafkaTracingConfig(TracingMetaInfo.SERVICE_NAME, TracingMetaInfo.ZIPKIN_V2_URL, TracingMetaInfo.KAFKA_TOPIC);
+		} else {
+			config = new OkHttpTracingConfig(TracingMetaInfo.SERVICE_NAME, TracingMetaInfo.ZIPKIN_V2_URL);
+		}
+		tracing = config.tracing();
 		logger.info("create tracing successful . SERVICE_NAME : " + TracingMetaInfo.SERVICE_NAME + ".  ZIPKIN_V2_URL : " + TracingMetaInfo.ZIPKIN_V2_URL);
-	}
-
-	private static AsyncReporter<Span> spanReporter(String zipkinUrl) {
-		Sender sender = OkHttpSender.create(zipkinUrl);
-		AsyncReporter asyncReporter = AsyncReporter.builder(sender)
-				.closeTimeout(500, TimeUnit.MILLISECONDS)
-				.build(SpanBytesEncoder.JSON_V2);
-
-		return asyncReporter;
 	}
 
 	public static Tracing getTracing() {
