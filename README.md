@@ -102,16 +102,17 @@ For example, if you want to enable debug logging for all zipkin categories, you 
 $ java -jar zipkin.jar --logging.level.zipkin2=DEBUG
 ```
 参考：
-[ZipKin配置](https://github.com/openzipkin/zipkin/blob/master/zipkin-server/README.md)
-[ZipKin整合Kafka配置:kafka10](https://github.com/openzipkin/zipkin/blob/master/zipkin-collector/kafka/README.md)
-[ZipKin整合Kafka默认配置:kafka10](https://github.com/openzipkin/zipkin/blob/master/zipkin-autoconfigure/collector-kafka/README.md)
-[ZipKin整合Kafka配置:kafka08](https://github.com/openzipkin/zipkin/blob/master/zipkin-collector/kafka08/README.md)
-[ZipKin整合Kafka默认配置:kafka08](https://github.com/openzipkin/zipkin/blob/master/zipkin-autoconfigure/collector-kafka08/README.md)
+* [ZipKin配置](https://github.com/openzipkin/zipkin/blob/master/zipkin-server/README.md)
+* [ZipKin整合Kafka配置:kafka10](https://github.com/openzipkin/zipkin/blob/master/zipkin-collector/kafka/README.md)
+* [ZipKin整合Kafka默认配置:kafka10](https://github.com/openzipkin/zipkin/blob/master/zipkin-autoconfigure/collector-kafka/README.md)
+* [ZipKin整合Kafka配置:kafka08](https://github.com/openzipkin/zipkin/blob/master/zipkin-collector/kafka08/README.md)
+* [ZipKin整合Kafka默认配置:kafka08](https://github.com/openzipkin/zipkin/blob/master/zipkin-autoconfigure/collector-kafka08/README.md)
 
 例：
 ```bash
 java -DKAFKA_BOOTSTRAP_SERVERS=172.16.6.95:9092,172.16.6.95:9093,172.16.6.95:9094 -DKAFKA_TOPIC=zipkin -jar zipkin.jar  --logging.level.zipkin2=DEBUG
 ```
+
 
 > 待扩展项
 > * 抽象数据传输（扩展Kafka数据传输）支持HTTP/Kafka数据传输 - 已完成
