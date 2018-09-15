@@ -35,10 +35,10 @@ public class TracingMetaInfo {
 		try {
 			prop = new Properties();
 			prop.load(TracingMetaInfo.class.getClassLoader().getResourceAsStream(RESOURCE_FILE_NAME));
-			ZIPKIN_V2_URL = setZipKin(prop.getProperty("zipkinHost") , DEFAULT_ZIPKIN_V2_URL);
-			SERVICE_NAME = setProperty(prop.getProperty("serviceName") , DEFAULT_SERVICE_NAME);
-			TRANSPORT_TYPE = setProperty(prop.getProperty("type"),DEFAULT_SERVICE_NAME);
-			TRANSPORT_TYPE = setProperty(prop.getProperty("topic"),DEFAULT_KAFKA_TOPIC);
+			ZIPKIN_V2_URL = setZipKin(prop.getProperty("zipkin_host") , DEFAULT_ZIPKIN_V2_URL);
+			SERVICE_NAME = setProperty(prop.getProperty("service_name") , DEFAULT_SERVICE_NAME);
+			TRANSPORT_TYPE = setProperty(prop.getProperty("transport_type"),DEFAULT_SERVICE_NAME);
+			TRANSPORT_TYPE = setProperty(prop.getProperty("kafka_topic"),DEFAULT_KAFKA_TOPIC);
 		} catch (FileNotFoundException e) {
 			logger.warn(" please add "+RESOURCE_FILE_NAME+" file at resource root directory.");
 			ZIPKIN_V2_URL = setZipKin(null , DEFAULT_ZIPKIN_V2_URL);

@@ -40,21 +40,30 @@ POM依赖添加
     <version>1.0-SNAPSHOT</version>
 </dependency>
 ```
+## 变量默认值(不进行设置则按如下配置)
+| Key | Default Value | Description | 
+| - | :-: | -: | 
+| transport_type | http | A | 
+| zipkin_host | localhost:9411 | A | 
+| service_name | trace-default | A | 
+| kafka_topic | zipkin | A | 
+
+
 资源目录根路径下添加tracing.properties文件
 ![tracing.properties](http://wx1.sinaimg.cn/mw1024/006QW2Smgy1fv83pwskp1j30kv092wev.jpg "tracing.properties")
+
+
 一次调用信息
 ![tracing.properties](http://wx4.sinaimg.cn/mw1024/006QW2Smgy1fv84r2zuvzj30mg0hvmy1.jpg "tracing.properties")
 调用链
 ![tracing.properties](http://wx2.sinaimg.cn/mw1024/006QW2Smgy1fv84r30py1j30xk0bsgm7.jpg "tracing.properties")
 调用成功失败汇总
 ![tracing.properties](http://wx1.sinaimg.cn/mw1024/006QW2Smgy1fv84r35vhjj31130bk3z4.jpg "tracing.properties")
-zipkinHost 指定zipkin服务器IP:PORT 默认为localhost:9411
-serviceName 指定应用名称  默认为trace-default
 
 调用链：
 ![tracing.properties](http://wx3.sinaimg.cn/mw1024/006QW2Smgy1fv84ge9genj31f80egwff.jpg "tracing.properties")
 
 > 待扩展项
-> * 抽象数据传输（扩展Kafka数据传输）
+> * 抽象数据传输（扩展Kafka数据传输）- 已完成
 > * 调用返回值数据打印
 > * 更灵活的配置方式
