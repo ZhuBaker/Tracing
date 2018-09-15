@@ -64,7 +64,7 @@ POM依赖添加
 ![tracing.properties](http://wx3.sinaimg.cn/mw1024/006QW2Smgy1fv84ge9genj31f80egwff.jpg "tracing.properties")
 
 
-## 整合Kafka 预处理
+## 整合Kafka 
 1.搭建Kafka运行环境 Scala
 2.搭建并启动Kafka
 3.启动zipkin:启动zipkin时 建议先看官方文档,鉴于kafka版本更新较快,zipkin连接kafka时不同版本之间的差异, 建议先看[GitHub](https://github.com/openzipkin/zipkin/tree/master/zipkin-server) 后进行zipkin的启动
