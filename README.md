@@ -64,6 +64,6 @@ POM依赖添加
 ![tracing.properties](http://wx3.sinaimg.cn/mw1024/006QW2Smgy1fv84ge9genj31f80egwff.jpg "tracing.properties")
 
 > 待扩展项
-> * 抽象数据传输（扩展Kafka数据传输）- 已完成
+> * 抽象数据传输（扩展Kafka数据传输）支持HTTP/Kafka数据传输 - 已完成
 > * 调用返回值数据打印
 > * 更灵活的配置方式
